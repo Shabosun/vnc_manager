@@ -23,9 +23,9 @@ if ($result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
         echo "<tr>
                 <td>{$row['id']}</td>
-                <td><a href='{$row['link']}' targer='_blank'>{$row['name']}</a></td>
+                <td>{$row['name']}</td>
                 <td>{$row['date']}</td>
-                <td><a href='../lamp/docker-compose-lamp/www/form.php' target='_blank'><img src='/assets/images/edit_icon.png' height='24' width='24'></a></td>
+                <td><a href='{$row['link']}' targer='_blank'>Открыть</a></td>
               </tr>";
     }
 } else {

@@ -1,3 +1,1 @@
-localhost1: localhost:5902
-localhost2: localhost:5901
-localhost3: 192.168.122.223:5902
+192168122223: 192.168.122.223:5902

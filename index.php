@@ -8,11 +8,17 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <!-- Подключение DataTables CSS -->
     <link href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css" rel="stylesheet">
+    <style>
+
+.pagination {
+            justify-content: center;
+        }
+    </style>
 </head>
 <body>
 
 <div class="container mt-5">
-    <!-- <h2>Пример таблицы с пагинацией</h2> -->
+    <h2>Пример таблицы с пагинацией</h2>
     <table id="example" class="table table-striped table-bordered">
         <thead>
             <tr>
@@ -24,9 +30,12 @@
         </thead>
         <tbody>
         <?php include 'fetch_data.php'; ?>
+         
         </tbody>
     </table>
 </div>
+
+
 
 <!-- Подключение jQuery -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
