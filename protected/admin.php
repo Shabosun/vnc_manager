@@ -70,6 +70,10 @@
             z-index: 0;
             position:fixed;
         }
+        .show_pass{
+            margin: 1%;
+        }
+        
     </style>
 </head>
 <body>
@@ -129,15 +133,15 @@
             </div>
             <div class="form-group">
                 <label for="comment">Комментарий</label>
-                <textarea class="form-control" name="comment" id="comment" rows="3" placeholder="Введите комментарий" required></textarea>
+                <textarea class="form-control" name="comment" id="comment" rows="3" placeholder="Введите комментарий"></textarea>
             </div>
             <div class="form-group">
-                <label for="ipaddress">IP-адрес</label>
-                <input type="text" class="form-control" name="address"id="address" placeholder="Введите IP-адрес" required>
+                <label for="address">IP-адрес</label>
+                <input type="text" class="form-control" name="address"id="address" placeholder="Введите IP-адрес" pattern="^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required>
             </div>
             <div class="form-group">
                 <label for="port">Порт</label>
-                <input type="text" class="form-control" name="port" id="port" placeholder="Введите порт" required>
+                <input type="text" class="form-control" name="port" id="port" placeholder="Введите порт" pattern= "^\d{1,5}$" required>
             </div>
             <div class="form-group">
                 <label for="login">Имя пользователя</label>
@@ -146,6 +150,11 @@
             <div class="form-group">
                 <label for="password">Пароль</label>
                 <input type="password" class="form-control" name="password" id="password" placeholder="Введите пароль" required>
+                <div class="show_pass">
+                    <input type="checkbox" name="cb_pass" id="cb_pass" >
+                    <label for="cb_pass">Показать пароль</label>
+                </div>
+                
             </div>
             <button id="button_add_element" type="submit" class="btn btn-primary">Добавить</button>
         </form>
@@ -217,13 +226,50 @@
                 }
             }
 
+    //Кнопка для просмотра пароля
+    document.getElementById('cb_pass').onclick = function() {
+        if (this.checked) {
+            document.getElementById('password').type = 'text';
+        } else {
+            document.getElementById('password').type = 'password';
+        }
+    };
 
-    //проверка валидации формы
-    document.getElementById('button_add_element').onclick = function() {
+
+    //проверка валидации формы добавления нового элемента
+    document.getElementById('form_add_element').addEventListener('submit', function(event){
         const form = document.getElementById('form_add_element');
+        const ip_address_value= document.getElementById('address').value;
         
-    
-    }
+        const ip_patterns = ['255.255.255.255', '0.0.0.0'];
+        const is_not_valid_ip = ip_patterns.includes(ip_address_value);
+
+        if(is_not_valid_ip){
+            event.preventDefault();
+            alert("IP-адрес введен неверно");
+        }
+
+    });
+
+//     document.getElementById('button_add_element').onclick = function() {
+
+//         const form = document.getElementById('form_add_element');
+//         const ip_address_input = document.getElementById('address').value;
+        
+//         patterns = {"255.255.255.255", "0.0.0.0"};
+//         const is_valid = patterns.array.forEach(element => {
+//             if(element == ip_address_input){
+//                 return false;
+//             }
+//         });
+
+//         if(!is_valid){
+//             even
+//         }
+        
+// }
+
+
 
 </script>
 
