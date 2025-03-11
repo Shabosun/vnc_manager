@@ -12,7 +12,7 @@
         $token_id = (str_replace('.', '',$address)); //для token.list файла
         $link = "http://localhost:6080/vnc.html?path=?token=" . $token_id; 
 
-        $sql = "INSERT INTO configs (name, date, link, login, password, address, port) VALUES
+        $sql = "INSERT INTO test_configs (name, date, link, login, password, address, port) VALUES
           ('$name', NOW(), '$link', '$login', '$password', '$address', '$port')";
 
         if($conn->query($sql)){
@@ -23,9 +23,14 @@
             fwrite($fd,$token_element);
 
             fclose( $fd );
+
+            header('Location: /protected/admin.php'); // чтобы форма не перенапрявляла, а возвращала обратно в admin.php
+            exit();
         } else{
             echo "Ошибка: " . $conn->error;
         }
+
+        
         $conn->close();
     }
 ///сделать комментарй
