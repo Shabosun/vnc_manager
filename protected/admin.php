@@ -2,14 +2,60 @@
     include '../config.php';
 
 
-    if(isset($_POST['delete'])){
+      if(isset($_POST['delete'])){
         $idsToDelete = $_POST['ids'];
+
         if(!empty($idsToDelete)){
             $ids = implode(',', array_map('intval', $idsToDelete));
-            $conn->query("DELETE FROM test_configs WHERE id IN ($ids)");
+            $res = $conn->query("SELECT address FROM configs WHERE id IN ($ids)");
+            if (!$res){
+
+                die("Ошибка выполнения запроса: " . $mysqli->error);
+
+            }
+            else{
+                //берем ip адреса с БД
+                if($res->num_rows > 0){
+                    while($row = $res->fetch_assoc()){
+
+                        $addresses[] = $row;
+                    }
+                }
+
+                //удаляем их из файла 
+                if (!empty($addresses)) {
+
+                  $fread = fopen('../token.list', 'r') or die("Unable to open file!");
+                  $lines = [];
+                  while (($line = fgets($fread)) !== false){
+                    for ($i = 0; $i < count($addresses); $i++){
+                        if (strpos($line, implode($addresses[$i])) === false){
+                            $lines[] = $line;
+                        }
+                    }
+                  }
+                  fclose( $fread );
+
+                  //перезаписываем файл без удаляемых адресов
+
+                  $fwrite = fopen('../token.list', 'w') or die("Unable to open file!");
+
+                  foreach($lines as $line){
+                    fwrite($fwrite, $line);
+                  }
+                  fclose( $fwrite );
+
+                  //удаляем записи из БД
+                  $conn->query("DELETE FROM configs WHERE id IN ($ids)");
+
+                  $conn->close();
+
+                }
+            }
         }
     }
-    $sql = "SELECT * FROM test_configs;";
+
+    $sql = "SELECT * FROM configs;";
     $result = $conn->query($sql);
 
     $conn->close();
@@ -25,6 +71,7 @@
     <title>VNC Manager</title>
     <!-- Подключение Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
     <!-- Подключение DataTables CSS -->
     <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
@@ -73,11 +120,14 @@
         .show_pass{
             margin: 1%;
         }
-        
+        a {
+            
+            text-decoration: none;
+        }        
     </style>
 </head>
 <body>
-<nav class="navbar bg-body-tertiary" data-bs-theme="dark">
+<nav class="navbar navbar-expand bg-body-tertiary" data-bs-theme="dark">
   <div class="container-fluid">
     <a class="navbar-brand" href="#">
       <img src="../assets/images/logo_monitor_icon.png" alt="Logo" width="30" height="24" class="d-inline-block align-text-top">
@@ -94,7 +144,7 @@
                 <th>Название</th>
                 <!-- <th>Комментарий</th> -->
                 <th>Дата добавления</th>
-                <!-- <th></th> -->
+                <th></th> 
                 <th><input type="checkbox" id="selectAll" ></th>
             </tr>
         </thead>
@@ -102,10 +152,12 @@
         <?php if ($result->num_rows > 0): ?>
                     <?php while($row = $result->fetch_assoc()): ?>
                         <tr>
-                            <td><?php echo $row['id']; ?></td>
-                            <td><?php echo $row['name']; ?></td>
+                            <td onclick="open_form_show_details(<?php echo $row['id']?>)"><?php echo $row['id']; ?></td>
+                            <td onclick="open_form_show_details(<?php echo $row['id']?>)"><?php echo $row['name']; ?></td>
                             <td><?php echo $row['date']; ?></td>
+                            <td><a href="<?php echo $row['link']?>" target="_blank">Открыть</a></td>
                             <td><input class='cb' type="checkbox" name="ids[]" value="<?php echo $row['id']; ?>"></td>
+                            
                         </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
@@ -156,9 +208,8 @@
                 </div>
                 
             </div>
-            <button id="button_add_element" type="submit" class="btn btn-primary">Добавить</button>
+            <button id="button_add_element" type="submit" class="btn btn-primary">Сохранить</button>
         </form>
-
     </div>
 </div>
    
@@ -168,6 +219,27 @@
 
 <script>
 
+    //открытые формы для редактирования
+    function open_form_show_details(el_id){
+        $.get('../get_data.php', {id : el_id}, function(data){
+            
+            
+            
+            $('#name').val(data.name);
+            $('#comment').val(data.name);
+            $('#address').val(data.address);
+            $('#port').val(data.port);
+            $('#login').val(data.login);
+            $('#password').val(data.password);
+
+
+            document.getElementById('modal').style.display = 'flex';
+        }, 'json')
+
+    }
+
+
+
             //Открытие и закрытие формы для добавления элементов
     document.getElementById('button_open_form').onclick = function() {
         document.getElementById('modal').style.display = 'flex';
@@ -175,6 +247,13 @@
 
     document.getElementById('button_close_form').onclick = function() {
             document.getElementById('modal').style.display = 'none';
+
+            $('#name').val('');
+            $('#comment').val('');
+            $('#address').val('');
+            $('#port').val('');
+            $('#login').val('');
+            $('#password').val('');
         };
 
 
@@ -184,7 +263,7 @@
             'bInfo': false, //count of elemetns
             columnDefs: [
                 {
-                    orderable: false, targets: [3] //отключили сортировку столбца с чекбоксами
+                    orderable: false, targets: [3, 4] //отключили сортировку столбца с чекбоксами
                 }
             ],
             language: {
@@ -204,6 +283,9 @@
     };
 
 
+
+    
+
     $(document).ready(function() {
           
 
@@ -215,6 +297,43 @@
             // Инициализируем состояние кнопки при загрузке страницы
             toggleButton();
         });
+
+        // $('.form_add_element').on('submit', function(event) {
+        //         event.preventDefault(); // Предотвращаем стандартное поведение формы
+
+        //         const item = $('#item').val();
+
+        //         // Проверяем наличие элемента на сервере
+        //         $.ajax({
+        //             url: 'check_item.php', // URL для проверки наличия элемента
+        //             method: 'GET',
+        //             data: { item: item },
+        //             success: function(response) {
+        //                 if (response.exists) {
+        //                     // Если элемент существует, отправляем PUT запрос
+        //                     $.ajax({
+        //                         url: 'send_data.php', // URL для обновления элемента
+        //                         method: 'PUT',
+        //                         data: { item: item },
+        //                         success: function(updateResponse) {
+        //                             alert('Элемент обновлен: ' + updateResponse);
+        //                         }
+        //                     });
+        //                 } else {
+        //                     // Если элемента нет, отправляем POST запрос
+        //                     $.ajax({
+        //                         url: 'create_item.php', // URL для создания элемента
+        //                         method: 'POST',
+        //                         data: { item: item },
+        //                         success: function(createResponse) {
+        //                             alert('Элемент создан: ' + createResponse);
+        //                         }
+        //                     });
+        //                 }
+        //             }
+        //         });
+        //     });
+
 
     //функция проверки чекбокса
     function toggleButton() {
@@ -250,26 +369,6 @@
         }
 
     });
-
-//     document.getElementById('button_add_element').onclick = function() {
-
-//         const form = document.getElementById('form_add_element');
-//         const ip_address_input = document.getElementById('address').value;
-        
-//         patterns = {"255.255.255.255", "0.0.0.0"};
-//         const is_valid = patterns.array.forEach(element => {
-//             if(element == ip_address_input){
-//                 return false;
-//             }
-//         });
-
-//         if(!is_valid){
-//             even
-//         }
-        
-// }
-
-
 
 </script>
 
