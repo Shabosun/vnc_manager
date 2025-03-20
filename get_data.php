@@ -18,6 +18,7 @@ if ($result = $conn->query("SELECT * FROM  configs WHERE id = '$id'")){
         $port = $row["port"];
         $login = ["login"];
         $password = ["password"];
+        
 
     }
 
