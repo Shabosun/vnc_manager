@@ -7,48 +7,49 @@
 
         if(!empty($idsToDelete)){
             $ids = implode(',', array_map('intval', $idsToDelete));
-            $res = $conn->query("SELECT address FROM configs WHERE id IN ($ids)");
+            $res = $conn->query("SELECT address, port FROM configs WHERE id in ($ids)");
             if (!$res){
 
                 die("Ошибка выполнения запроса: " . $mysqli->error);
 
             }
             else{
-                //берем ip адреса с БД
-                if($res->num_rows > 0){
+
+                if ($res->num_rows > 0) {
+                    $addresses[] = '';
                     while($row = $res->fetch_assoc()){
-
-                        $addresses[] = $row;
+                        $addresses[] = str_replace('.','', $row['address']) . $row['port'];
+                       
                     }
-                }
-
-                //удаляем их из файла 
-                if (!empty($addresses)) {
-
-                  $fread = fopen('../token.list', 'r') or die("Unable to open file!");
-                  $lines = [];
-                  while (($line = fgets($fread)) !== false){
-                    for ($i = 0; $i < count($addresses); $i++){
-                        if (strpos($line, implode($addresses[$i])) === false){
-                            $lines[] = $line;
-                        }
+        
+        
+        
+                    if (!empty($addresses)) { //если такая запись есть в бд, то удаляем из файла старую запись и записываем новую
+                        //удаляем это id с адресом из файла
+        
+                        $fread = fopen('../token.list', 'r') or die("Unable to open file!");
+                          $lines = [];
+                          while (($line = fgets($fread)) !== false){
+                            for ($i = 0; $i < count($addresses); $i++){
+                                if (strpos($line, $addresses[$i]) === true){
+                                    $lines[] = $line;
+                                }
+                            }
+                          }
+                          fclose( $fread );
+        
+                          $fwrite = fopen('../token.list', 'w') or die("Unable to open file!");
+        
+                          foreach($lines as $line){
+                            fwrite($fwrite, $line);
+                          }
+                          fclose( $fwrite );
                     }
-                  }
-                  fclose( $fread );
-
-                  //перезаписываем файл без удаляемых адресов
-
-                  $fwrite = fopen('../token.list', 'w') or die("Unable to open file!");
-
-                  foreach($lines as $line){
-                    fwrite($fwrite, $line);
-                  }
-                  fclose( $fwrite );
 
                   //удаляем записи из БД
                   $conn->query("DELETE FROM configs WHERE id IN ($ids)");
 
-                  $conn->close();
+                
 
                 }
             }
@@ -171,21 +172,24 @@
     <button id="button_open_form" type="button" name="open_form" class="btn btn-success">Добавить элемент</button>
    </form> 
 </div>
-    
+
 <div class="modal" id="modal">
     <div class="modal-content">
-    <form id="form_add_element" action="../send_data.php" method="POST">
+    <form id="form_add_element" action="../update.php" method="POST">
         <svg  id='button_close_form' xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
             <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
             <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
         </svg>
+        <div class="form-group">
+                <input type="hidden" class="form-control" name="id" id="id">
+            </div>
         <div class="form-group">
                 <label for="name">Название</label>
                 <input type="text" class="form-control" name="name" id="name" placeholder="Введите название" required>
             </div>
             <div class="form-group">
                 <label for="comment">Комментарий</label>
-                <textarea class="form-control" name="comment" id="comment" rows="3" placeholder="Введите комментарий"></textarea>
+                <textarea class="form-control" name="comment" id="comment" rows="3"  placeholder="Введите комментарий"></textarea>
             </div>
             <div class="form-group">
                 <label for="address">IP-адрес</label>
@@ -197,7 +201,7 @@
             </div>
             <div class="form-group">
                 <label for="login">Имя пользователя</label>
-                <input type="text" class="form-control" name="login" id="login" placeholder="Введите имя пользователя" required>
+                <input type="text" class="form-control" name="login" id="login"  placeholder="Введите имя пользователя" required>
             </div>
             <div class="form-group">
                 <label for="password">Пароль</label>
@@ -224,7 +228,7 @@
         $.get('../get_data.php', {id : el_id}, function(data){
             
             
-            
+            $('#id').val(data.id);
             $('#name').val(data.name);
             $('#comment').val(data.name);
             $('#address').val(data.address);
@@ -248,6 +252,8 @@
     document.getElementById('button_close_form').onclick = function() {
             document.getElementById('modal').style.display = 'none';
 
+
+            $('#id').val();
             $('#name').val('');
             $('#comment').val('');
             $('#address').val('');
@@ -270,7 +276,17 @@
                 // url: '//cdn.datatables.net/plug-ins/2.2.2/i18n/ru.json'
             }
         }); 
+
     });
+
+    $('.cb').change(function() {
+                toggleButton(); // Вызываем функцию для проверки состояния
+            });
+
+            // Инициализируем состояние кнопки при загрузке страницы
+            toggleButton();
+
+    
 
     document.getElementById('selectAll').onclick = function() {
         const checkboxes = document.querySelectorAll('input[name="ids[]"]');
@@ -284,57 +300,6 @@
 
 
 
-    
-
-    $(document).ready(function() {
-          
-
-            // Отслеживаем изменения состояния чекбоксов
-            $('.cb').change(function() {
-                toggleButton(); // Вызываем функцию для проверки состояния
-            });
-
-            // Инициализируем состояние кнопки при загрузке страницы
-            toggleButton();
-        });
-
-        // $('.form_add_element').on('submit', function(event) {
-        //         event.preventDefault(); // Предотвращаем стандартное поведение формы
-
-        //         const item = $('#item').val();
-
-        //         // Проверяем наличие элемента на сервере
-        //         $.ajax({
-        //             url: 'check_item.php', // URL для проверки наличия элемента
-        //             method: 'GET',
-        //             data: { item: item },
-        //             success: function(response) {
-        //                 if (response.exists) {
-        //                     // Если элемент существует, отправляем PUT запрос
-        //                     $.ajax({
-        //                         url: 'send_data.php', // URL для обновления элемента
-        //                         method: 'PUT',
-        //                         data: { item: item },
-        //                         success: function(updateResponse) {
-        //                             alert('Элемент обновлен: ' + updateResponse);
-        //                         }
-        //                     });
-        //                 } else {
-        //                     // Если элемента нет, отправляем POST запрос
-        //                     $.ajax({
-        //                         url: 'create_item.php', // URL для создания элемента
-        //                         method: 'POST',
-        //                         data: { item: item },
-        //                         success: function(createResponse) {
-        //                             alert('Элемент создан: ' + createResponse);
-        //                         }
-        //                     });
-        //                 }
-        //             }
-        //         });
-        //     });
-
-
     //функция проверки чекбокса
     function toggleButton() {
             // Проверяем, есть ли хотя бы один выбранный чекбокс
@@ -344,6 +309,8 @@
                 document.getElementById('button_delete').disabled = true; // Деактивируем кнопку
                 }
             }
+
+    
 
     //Кнопка для просмотра пароля
     document.getElementById('cb_pass').onclick = function() {
